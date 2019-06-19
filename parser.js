@@ -1,48 +1,90 @@
-let needle = require("needle");
+let fetch = require("node-fetch");
 let cheerio = require("cheerio");
-let async = require("async");
-
-let aUrl = [];
-let j = 0;
-let max = 56
 
 
-
-let q = async.queue(function (url) {
-
-  needle.get(url, function (err, res) {
-    if (err) throw (err);
-
-    let $ = cheerio.load(res.body);
-
-    let vacancy = "\n\nВзято с страницы " + url + "\n" + $("a.bloko-link.HH-LinkModifier").text();
+for (let i = 0; i < 1; i++) {
+  let url = "https://jobs.tut.by/vacancies/programmist/page-" + i;
+  parserPage(url);
+}
 
 
-    $('.resume-search-item__name').each((i, el) => {
-      const link = $(el).find('a').attr('href');
-      console.log(link);
+function parserPage(url) {
+
+  fetch(url)
+    .then(function (response) {
+      if (response.status !== 200) {
+        return Promise.reject(new Error(response.statusText));
+      }
+      return Promise.resolve(response);
+    })
+    .then(function (response) {
+      return response.text();
     })
 
+    .then(function (body) {
+      let $ = cheerio.load(body);
 
-    console.log(vacancy);
-    writeInFile(vacancy);
+      $(".resume-search-item__name").each((i, el) => {
+        fetch($(el).find("a").attr("href"))
+
+          .then(function (response) {
+            if (response.status !== 200) {
+              return Promise.reject(new Error(response.statusText));
+            }
+            return Promise.resolve(response);
+          })
+          .then(function (response) {
+            return response.text();
+
+          })
+
+          .then(function (body) {
+
+            let $ = cheerio.load(body),
+              job = $("h1.header").text(),
+              pay = $("p.vacancy-salary").text(),
+              company = $("span[itemprop = 'name']").text(),
+              location = $("span[data-qa = 'vacancy-view-raw-address']").text(),
+              experience = $("span[data-qa = 'vacancy-experience']").text(),
+              employment = $("p[data-qa = 'vacancy-view-employment-mode']").text();
 
 
-  });
-}, max);
+            console.log("работа " + job +
+              "; ЗП " + pay +
+              "; компания " + company +
+              "; расположение " + location +
+              "; опыт " + experience +
+              "; занятость " + employment +
+              "\n");
 
+            let jobInJson = {
+              Job: job,
+              Pay: pay,
+              Company: company,
+              Location: location,
+              Experience: experience,
+              Employment: employment
+            }
 
+            let vacancy = JSON.stringify(jobInJson);
+            writeInFile(vacancy);
+          })
+          .catch(function (error) {
+            console.log("job reference error: " + error);
+          });
+      })
+    })
 
-for (max; max > j; j++) {
-  aUrl[j] = "https://jobs.tut.by/vacancies/programmist/page-" + j;
-  q.push(aUrl[j]);
+    .catch(function (error) {
+      console.log("error on " + url + " : " + error);
+    });
 }
 
 function writeInFile(vacancy) {
   var fs = require('fs')
-  var logger = fs.createWriteStream('log.txt', {
-    flags: 'a' // 'a' means appending (old data will be preserved)
+  var logger = fs.createWriteStream("jobs.json", {
+    flags: 'a'
   })
 
-  logger.write(vacancy);
+  logger.write(vacancy + ",");
 }
