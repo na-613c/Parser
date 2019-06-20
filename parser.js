@@ -3,7 +3,7 @@ let cheerio = require("cheerio");
 
 
 for (let i = 0; i < 1; i++) {
-  let url = "https://jobs.tut.by/vacancies/programmist/page-" + i;
+  let url = "https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=0";
   parserPage(url);
 }
 
@@ -24,8 +24,10 @@ function parserPage(url) {
     .then(function (body) {
       let $ = cheerio.load(body);
 
-      $(".resume-search-item__name").each((i, el) => {
-        fetch($(el).find("a").attr("href"))
+      $(".resume-search-item__header").each((i, el) => {
+        let newUrl = $(el).find("a").attr("href");
+        console.log("https://jobs.tut.by" + newUrl);
+        fetch("https://jobs.tut.by" + newUrl)
 
           .then(function (response) {
             if (response.status !== 200) {
@@ -42,28 +44,26 @@ function parserPage(url) {
 
             let $ = cheerio.load(body),
               job = $("h1.header").text(),
-              pay = $("p.vacancy-salary").text(),
-              company = $("span[itemprop = 'name']").text(),
-              location = $("span[data-qa = 'vacancy-view-raw-address']").text(),
-              experience = $("span[data-qa = 'vacancy-experience']").text(),
-              employment = $("p[data-qa = 'vacancy-view-employment-mode']").text();
-
-
-            console.log("работа " + job +
-              "; ЗП " + pay +
-              "; компания " + company +
-              "; расположение " + location +
-              "; опыт " + experience +
-              "; занятость " + employment +
-              "\n");
+              pay = $("span[data-qa = 'resume-block-salary']").text(),
+              hobby = $("span[data-qa = 'resume-block-specialization-category']").text(),
+              gender = $("span[data-qa = 'resume-personal-gender']").text(),
+              age = $("span[data-qa ='resume-personal-age']").text(),
+              location = $("span[itemprop  = 'address']").text(),
+              experience = $(".resume-block__title-text.resume-block__title-text_sub").text(),
+              employment = $(".bloko-column.bloko-column_xs-4.bloko-column_s-8.bloko-column_m-9.bloko-column_l-12").text(),
+              about = $(".resume-block-container").text();
+              
 
             let jobInJson = {
               Job: job,
               Pay: pay,
-              Company: company,
+              Hobby: hobby,
+              Gender:gender,
+              age: age,
               Location: location,
-              Experience: experience,
-              Employment: employment
+              // Experience: experience,
+              // Employment: employment,
+              About: about
             }
 
             let vacancy = JSON.stringify(jobInJson);
@@ -86,5 +86,24 @@ function writeInFile(vacancy) {
     flags: 'a'
   })
 
+
+  // let  content;
+  // $.ajax({
+  //         url: "test.txt",
+  //         dataType: "text",
+  //         async: true,
+  //         success: function(msg){
+  //           content = msg;
+  //             if (content != nill){
+  //               logger.write(vacancy);
+  //             }else{
+  //               logger.write("," + vacancy);
+  //             }
+  //         }
+  //     });
+
+
   logger.write(vacancy + ",");
+
+  
 }
