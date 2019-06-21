@@ -1,15 +1,19 @@
 let fetch = require("node-fetch");
 let cheerio = require("cheerio");
 
+const obj = {
+  arr: []
+};
 
-for (let i = 0; i < 1; i++) {
-  let url = "https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=0";
+
+let startUrl = "https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=";
+
+  let url = startUrl + "0";
   parserPage(url);
-}
+
 
 
 function parserPage(url) {
-
   fetch(url)
     .then(function (response) {
       if (response.status !== 200) {
@@ -26,7 +30,8 @@ function parserPage(url) {
 
       $(".resume-search-item__header").each((i, el) => {
         let newUrl = $(el).find("a").attr("href");
-        console.log("https://jobs.tut.by" + newUrl);
+        
+        
         fetch("https://jobs.tut.by" + newUrl)
 
           .then(function (response) {
@@ -35,6 +40,7 @@ function parserPage(url) {
             }
             return Promise.resolve(response);
           })
+
           .then(function (response) {
             return response.text();
 
@@ -48,31 +54,28 @@ function parserPage(url) {
               hobby = $("span[data-qa = 'resume-block-specialization-category']").text(),
               gender = $("span[data-qa = 'resume-personal-gender']").text(),
               age = $("span[data-qa ='resume-personal-age']").text(),
-              location = $("span[itemprop  = 'address']").text(),
-              experience = $(".resume-block__title-text.resume-block__title-text_sub").text(),
-              employment = $(".bloko-column.bloko-column_xs-4.bloko-column_s-8.bloko-column_m-9.bloko-column_l-12").text(),
+              location = $("span[itemprop  = 'addressLocality'][data-qa ='resume-personal-address']").text(),
               about = $(".resume-block-container").text();
+
               
+            let jobInJson = {job,pay,hobby,gender,age,location};
 
-            let jobInJson = {
-              Job: job,
-              Pay: pay,
-              Hobby: hobby,
-              Gender:gender,
-              age: age,
-              Location: location,
-              // Experience: experience,
-              // Employment: employment,
-              About: about
-            }
+            obj.arr.push({ jobInJson });
 
-            let vacancy = JSON.stringify(jobInJson);
+            let vacancy = JSON.stringify(obj);
             writeInFile(vacancy);
           })
           .catch(function (error) {
             console.log("job reference error: " + error);
           });
       })
+
+      $("a[data-qa='pager-next']").each((i, el) => {
+        nextPageUrl = "https://jobs.tut.by" + $("a.bloko-button.HH-Pager-Controls-Next.HH-Pager-Control[data-qa='pager-next']").attr("href");
+        console.log("Переход по ссылке "+ nextPageUrl);
+        parserPage(nextPageUrl);
+    });
+
     })
 
     .catch(function (error) {
@@ -82,28 +85,10 @@ function parserPage(url) {
 
 function writeInFile(vacancy) {
   var fs = require('fs')
-  var logger = fs.createWriteStream("jobs.json", {
-    flags: 'a'
-  })
-
-
-  // let  content;
-  // $.ajax({
-  //         url: "test.txt",
-  //         dataType: "text",
-  //         async: true,
-  //         success: function(msg){
-  //           content = msg;
-  //             if (content != nill){
-  //               logger.write(vacancy);
-  //             }else{
-  //               logger.write("," + vacancy);
-  //             }
-  //         }
-  //     });
-
-
-  logger.write(vacancy + ",");
-
-  
+  fs.writeFileSync('jobs.json', vacancy);
 }
+
+
+
+
+
