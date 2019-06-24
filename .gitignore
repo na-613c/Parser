@@ -4,3 +4,5 @@ server.js
 test.js
 save
 jobs.json
+report.txt
+*.json
