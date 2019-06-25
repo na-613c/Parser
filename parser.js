@@ -4,8 +4,8 @@ const fs = require('fs');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
 
-const startPageForParsing = 0;
-let URL = 'https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=' + startPageForParsing;
+const startPageForParsing = 248;
+let URL = `https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=${startPageForParsing}`;
 const results = [];
 
 
@@ -15,7 +15,7 @@ const mainPage = tress(function (url, callback) {
 
         // парсим DOM
         const doc = parser.parseFromString(res.body);
-        console.log("Link " + URL + " processed!");
+        console.log(`Link ${URL}  processed!`);
 
         resumeOnMainPage(doc);
         movingOnPage(doc);
@@ -27,7 +27,7 @@ const mainPage = tress(function (url, callback) {
             const resumeArray = Array.from(resumeUrl);
             resumeArray.forEach((resumeUrl) => {
                 const newResumeUrl = resumeUrl.getAttribute('href');
-                parserPage.push("https://jobs.tut.by" + newResumeUrl);
+                parserPage.push(`https://jobs.tut.by${newResumeUrl}`);
             })
         }
 
@@ -38,7 +38,7 @@ const mainPage = tress(function (url, callback) {
             const resumeArray = Array.from(nextPage);
             resumeArray.forEach((nextPage) => {
                 const nextPageUrl = nextPage.getAttribute('href');
-                URL = ("https://jobs.tut.by" + nextPageUrl).trim();
+                URL = (`https://jobs.tut.by${nextPageUrl}`).trim();
                 mainPage.push(URL);
             })
         }
@@ -103,7 +103,7 @@ const parserPage = tress(function (url, callback) {
             maxIndex++;
         }
 
-        let location = local.slice(maxIndex) + ", " + about,
+        let location = `${local.slice(maxIndex)}, ${about}`,
             gender = genderAndAge[0],
             age = genderAndAge[1],
             emptyLine = "не указанно";
