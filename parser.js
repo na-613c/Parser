@@ -1,21 +1,21 @@
-var tress = require('tress');
-var needle = require('needle');
-var fs = require('fs');
-var DomParser = require('dom-parser');
-var parser = new DomParser();
+const tress = require('tress');
+const needle = require('needle');
+const fs = require('fs');
+const DomParser = require('dom-parser');
+const parser = new DomParser();
 
-let startPageForParsing = 249;
-var URL = 'https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=' + startPageForParsing;
-var results = [];
+const startPageForParsing = 0;
+let URL = 'https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=' + startPageForParsing;
+const results = [];
 
 
-let mainPage = tress(function (url, callback) {
+const mainPage = tress(function (url, callback) {
     needle.get(url, function (err, res) {
         if (err) throw err;
 
         // парсим DOM
         const doc = parser.parseFromString(res.body);
-        console.log("URL = " + URL);
+        console.log("Link " + URL + " processed!");
 
         resumeOnMainPage(doc);
         movingOnPage(doc);
@@ -26,7 +26,7 @@ let mainPage = tress(function (url, callback) {
             const resumeUrl = doc.getElementsByClassName('resume-search-item__name');
             const resumeArray = Array.from(resumeUrl);
             resumeArray.forEach((resumeUrl) => {
-                let newResumeUrl = resumeUrl.getAttribute('href');
+                const newResumeUrl = resumeUrl.getAttribute('href');
                 parserPage.push("https://jobs.tut.by" + newResumeUrl);
             })
         }
@@ -37,9 +37,8 @@ let mainPage = tress(function (url, callback) {
             const nextPage = doc.getElementsByClassName('bloko-button.HH-Pager-Controls-Next');
             const resumeArray = Array.from(nextPage);
             resumeArray.forEach((nextPage) => {
-                let nextPageUrl = nextPage.getAttribute('href');
+                const nextPageUrl = nextPage.getAttribute('href');
                 URL = ("https://jobs.tut.by" + nextPageUrl).trim();
-                console.log(URL);
                 mainPage.push(URL);
             })
         }
@@ -47,37 +46,40 @@ let mainPage = tress(function (url, callback) {
     });
 }, 10); // запускаем 10 параллельных потоков
 
-let parserPage = tress(function (url, callback) {
+const parserPage = tress(function (url, callback) {
     needle.get(url, function (err, res) {
         if (err) throw err;
 
         // парсим DOM
         const doc = parser.parseFromString(res.body);
         // JOB
-        let jobElement = doc.getElementsByClassName('resume-block__title-text');
+        const jobElement = doc.getElementsByClassName('resume-block__title-text');
         const jobArray = [];
-        let jobCollection = Array.from(jobElement);
-        jobCollection.forEach((jobElement) => { jobArray.push(jobElement.innerHTML); })
+        const jobCollection = Array.from(jobElement);
+        jobCollection.forEach((jobElement) => {
+            jobArray.push(jobElement.innerHTML);
+        });
         let job = jobArray[0];
         //   PAY
-        let payElement = doc.getElementsByClassName('resume-block__title-text_salary');
+        const payElement = doc.getElementsByClassName('resume-block__title-text_salary');
         const payArray = [];
-        let payCollection = Array.from(payElement);
-        payCollection.forEach((payElement) => { payArray.push(payElement.innerHTML); })
+        const payCollection = Array.from(payElement);
+        payCollection.forEach((payElement) => { 
+            payArray.push(payElement.innerHTML); 
+        })
         let pay = payArray[0];
-        // GENDER
-        let aboutElement = doc.getElementsByClassName('resume-header-block');
+        // OTHER
+        const aboutElement = doc.getElementsByClassName('resume-header-block');
         const aboutArray = [];
-        let aboutCollection = Array.from(aboutElement);
+        const aboutCollection = Array.from(aboutElement);
         aboutCollection.forEach((aboutElement) => {
-            let regExp = /<!-- -->|(|)|/g;
-
+            const regExp = /<!-- -->|(|)|/g;
             aboutArray.push(aboutElement.textContent.replace(regExp, ""));
         })
 
         let about = aboutArray[0];
         about = about.split(', ');
-        let genderAndAge = about.splice(0, 2);
+        const genderAndAge = about.splice(0, 2);
 
         let local = about.splice(0, 1);
         local = local.join(',');
@@ -87,7 +89,7 @@ let parserPage = tress(function (url, callback) {
         searchIdCity(local, counter, maxIndex);
 
         function searchIdCity(local, counter) {
-            let number = local.lastIndexOf(counter);
+            const number = local.lastIndexOf(counter);
             if (maxIndex < number) {
                 maxIndex = number;
             }
@@ -97,18 +99,13 @@ let parserPage = tress(function (url, callback) {
             }
         }
 
-
         if (maxIndex != 0) {
             maxIndex++;
         }
 
-
-        let location = local.slice(maxIndex) + ", " + about;
-        console.log("Cтрока = " + location + ' ___||||___ ' + local + " ");
-
-        let gender = genderAndAge[0],
+        let location = local.slice(maxIndex) + ", " + about,
+            gender = genderAndAge[0],
             age = genderAndAge[1],
-
             emptyLine = "не указанно";
 
         switch (undefined) {
@@ -126,7 +123,7 @@ let parserPage = tress(function (url, callback) {
 
         results.push({ job, pay, gender, age, location, url });
 
-        let vacancy = JSON.stringify(results);
+        const vacancy = JSON.stringify(results);
         writeInFile(vacancy);
 
         callback();
