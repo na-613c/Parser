@@ -73,7 +73,7 @@ const parserPage = tress(function (url, callback) {
         const aboutArray = [];
         const aboutCollection = Array.from(aboutElement);
         aboutCollection.forEach((aboutElement) => {
-            const regExp = /<!-- -->|(|)|/g;
+            const regExp = /<!-- -->/g;
             aboutArray.push(aboutElement.textContent.replace(regExp, ""));
         })
 
