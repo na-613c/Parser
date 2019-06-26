@@ -8,14 +8,9 @@ const startPageForParsing = 0;
 let URL = `https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=${startPageForParsing}`;
 const results = [];
 
-const writeInFile = (vacancy) => {
-    fs.writeFileSync('jobs.json', vacancy);
-}
-
 const mainPage = tress((url, callback) => {
     needle.get(url, (err, res) => {
         if (err) throw err;
-
         // парсим DOM
         const doc = parser.parseFromString(res.body);
         console.log(`Link ${URL}  processed!`);
@@ -26,7 +21,8 @@ const mainPage = tress((url, callback) => {
             const resumeArray = Array.from(resumeUrl);
             resumeArray.forEach((resumeUrl) => {
                 const newResumeUrl = resumeUrl.getAttribute('href');
-                parserPage.push(`https://jobs.tut.by${newResumeUrl}`);
+                let urlResumePage = `https://jobs.tut.by${newResumeUrl}`
+                parserPage.push(urlResumePage);
             })
         }
 
@@ -38,9 +34,9 @@ const mainPage = tress((url, callback) => {
                 const nextPageUrl = nextPage.getAttribute('href');
                 URL = (`https://jobs.tut.by${nextPageUrl}`).trim();
                 mainPage.push(URL);
+
             })
         }
-
         resumeOnMainPage(doc);
         movingOnPage(doc);
         callback();
@@ -50,7 +46,6 @@ const mainPage = tress((url, callback) => {
 const parserPage = tress((url, callback) => {
     needle.get(url, (err, res) => {
         if (err) throw err;
-
         // парсим DOM
         const doc = parser.parseFromString(res.body);
         // JOB
@@ -77,13 +72,9 @@ const parserPage = tress((url, callback) => {
             const regExp = /<!-- -->/g;
             aboutArray.push(aboutElement.textContent.replace(regExp, ""));
         })
-
-        let about = aboutArray[0];
-        about = about.split(', ');
+        let about = (aboutArray[0]).split(', ');
         const genderAndAge = about.splice(0, 2);
-
-        let local = about.splice(0, 1);
-        local = local.join(',');
+        let local = (about.splice(0, 1)).join(',');
         let counter = 0;
         let maxIndex = 0;
 
@@ -117,12 +108,16 @@ const parserPage = tress((url, callback) => {
         }
 
         results.push({ job, pay, gender, age, location, url });
-
-        const vacancy = JSON.stringify(results);
-
-        writeInFile(vacancy);
         callback();
     });
 }, 20); // запускаем 20 параллельных потоков
 
+mainPage.drain = function () {
+    parserPage.drain = function () {
+        console.log("Начало записи в jobs.json")
+        fs.writeFileSync('jobs.json', JSON.stringify(results, null, 4));
+    }
+}
+
 mainPage.push(URL);
+

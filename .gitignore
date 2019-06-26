@@ -1,8 +1,6 @@
-node_modules
-server.js
-12.4.0
-test.js
-save
-report.txt
+jobs.json
 *.json
+server.js
+test.js
+report.txt
 jobs.json
