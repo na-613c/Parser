@@ -4,25 +4,24 @@ const fs = require('fs');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
 
-const startPageForParsing = 248;
+const startPageForParsing = 0;
 let URL = `https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=${startPageForParsing}`;
 const results = [];
 
+const writeInFile = (vacancy) => {
+    fs.writeFileSync('jobs.json', vacancy);
+}
 
-const mainPage = tress(function (url, callback) {
-    needle.get(url, function (err, res) {
+const mainPage = tress((url, callback) => {
+    needle.get(url, (err, res) => {
         if (err) throw err;
 
         // парсим DOM
         const doc = parser.parseFromString(res.body);
         console.log(`Link ${URL}  processed!`);
 
-        resumeOnMainPage(doc);
-        movingOnPage(doc);
-
-
         //информация о резюме
-        function resumeOnMainPage(doc) {
+        const resumeOnMainPage = (doc) => {
             const resumeUrl = doc.getElementsByClassName('resume-search-item__name');
             const resumeArray = Array.from(resumeUrl);
             resumeArray.forEach((resumeUrl) => {
@@ -31,9 +30,8 @@ const mainPage = tress(function (url, callback) {
             })
         }
 
-
         //переход
-        function movingOnPage(doc) {
+        const movingOnPage = (doc) => {
             const nextPage = doc.getElementsByClassName('bloko-button.HH-Pager-Controls-Next');
             const resumeArray = Array.from(nextPage);
             resumeArray.forEach((nextPage) => {
@@ -42,12 +40,15 @@ const mainPage = tress(function (url, callback) {
                 mainPage.push(URL);
             })
         }
+
+        resumeOnMainPage(doc);
+        movingOnPage(doc);
         callback();
     });
 }, 10); // запускаем 10 параллельных потоков
 
-const parserPage = tress(function (url, callback) {
-    needle.get(url, function (err, res) {
+const parserPage = tress((url, callback) => {
+    needle.get(url, (err, res) => {
         if (err) throw err;
 
         // парсим DOM
@@ -64,11 +65,11 @@ const parserPage = tress(function (url, callback) {
         const payElement = doc.getElementsByClassName('resume-block__title-text_salary');
         const payArray = [];
         const payCollection = Array.from(payElement);
-        payCollection.forEach((payElement) => { 
-            payArray.push(payElement.innerHTML); 
+        payCollection.forEach((payElement) => {
+            payArray.push(payElement.innerHTML);
         })
         let pay = payArray[0];
-        // OTHER
+        //  OTHER
         const aboutElement = doc.getElementsByClassName('resume-header-block');
         const aboutArray = [];
         const aboutCollection = Array.from(aboutElement);
@@ -86,22 +87,16 @@ const parserPage = tress(function (url, callback) {
         let counter = 0;
         let maxIndex = 0;
 
+        const searchIdCity = (local, counter) => {
+            const number = local.lastIndexOf(counter);
+            if (maxIndex < number) maxIndex = number;
+            counter++;
+            if (counter < 10) searchIdCity(local, counter, maxIndex);
+        }
+
         searchIdCity(local, counter, maxIndex);
 
-        function searchIdCity(local, counter) {
-            const number = local.lastIndexOf(counter);
-            if (maxIndex < number) {
-                maxIndex = number;
-            }
-            counter++;
-            if (counter < 10) {
-                searchIdCity(local, counter, maxIndex);
-            }
-        }
-
-        if (maxIndex != 0) {
-            maxIndex++;
-        }
+        if (maxIndex != 0) maxIndex++;
 
         let location = `${local.slice(maxIndex)}, ${about}`,
             gender = genderAndAge[0],
@@ -124,14 +119,10 @@ const parserPage = tress(function (url, callback) {
         results.push({ job, pay, gender, age, location, url });
 
         const vacancy = JSON.stringify(results);
-        writeInFile(vacancy);
 
+        writeInFile(vacancy);
         callback();
     });
 }, 20); // запускаем 20 параллельных потоков
-
-function writeInFile(vacancy) {
-    fs.writeFileSync('jobs.json', vacancy);
-}
 
 mainPage.push(URL);
