@@ -2,5 +2,5 @@ jobs.json
 *.json
 server.js
 test.js
-report.txt
+*.txt
 jobs.json

@@ -3,6 +3,7 @@ const needle = require('needle');
 const fs = require('fs');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
+const timeStart = new Date();
 
 const startPageForParsing = 0;
 let URL = `https://jobs.tut.by/search/resume?L_is_autosearch=false&area=1002&clusters=true&currency_code=BYR&exp_period=all_time&logic=normal&no_magic=false&order_by=relevance&pos=full_text&text=&page=${startPageForParsing}`;
@@ -41,7 +42,7 @@ const mainPage = tress((url, callback) => {
         movingOnPage(doc);
         callback();
     });
-}, 10); // запускаем 10 параллельных потоков
+}, 20); // запускаем 20 параллельных потоков
 
 const parserPage = tress((url, callback) => {
     needle.get(url, (err, res) => {
@@ -74,25 +75,25 @@ const parserPage = tress((url, callback) => {
         })
         let about = (aboutArray[0]).split(', ');
         const genderAndAge = about.splice(0, 2);
-        let local = (about.splice(0, 1)).join(',');
+        let city = (about.splice(0, 1)).join(',');
         let counter = 0;
         let maxIndex = 0;
 
-        const searchIdCity = (local, counter) => {
-            const number = local.lastIndexOf(counter);
+        const searchIdCity = (city, counter) => {
+            const number = city.lastIndexOf(counter);
             if (maxIndex < number) maxIndex = number;
             counter++;
-            if (counter < 10) searchIdCity(local, counter, maxIndex);
+            if (counter < 10) searchIdCity(city, counter, maxIndex);
         }
 
-        searchIdCity(local, counter, maxIndex);
+        searchIdCity(city, counter, maxIndex);
 
         if (maxIndex != 0) maxIndex++;
 
-        let location = `${local.slice(maxIndex)}, ${about}`,
+        let location = `${city.slice(maxIndex)}, ${about}`,
             gender = genderAndAge[0],
             age = genderAndAge[1],
-            emptyLine = "не указанно";
+            emptyLine = "не указано";
 
         switch (undefined) {
             case (job): job = emptyLine;
@@ -106,7 +107,6 @@ const parserPage = tress((url, callback) => {
             case (location): location = emptyLine;
                 break;
         }
-
         results.push({ job, pay, gender, age, location, url });
         callback();
     });
@@ -116,6 +116,20 @@ mainPage.drain = function () {
     parserPage.drain = function () {
         console.log("Начало записи в jobs.json")
         fs.writeFileSync('jobs.json', JSON.stringify(results, null, 4));
+
+        const timeEnd = new Date();
+        let workSecond = timeEnd.getSeconds() - timeStart.getSeconds();
+        let workMinutes = timeEnd.getMinutes() - timeStart.getMinutes();
+        let workHours = timeEnd.getHours() - timeStart.getHours();
+        if (workSecond < 0) {
+            workMinutes--;
+            workSecond += 60;
+        }
+        if (workMinutes < 0) {
+            workHours--;
+            workMinutes += 60;
+        }
+        console.log(`Время выполнения ${workHours} часов, ${workMinutes} минут, ${workSecond} секунд.`);
     }
 }
 
