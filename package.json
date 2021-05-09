@@ -14,7 +14,7 @@
     "htmlparser2": "^3.9.2",
     "iconv-lite": "^0.4.19",
     "inherits": "^2.0.3",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "needle": "^2.4.0",
     "tress": "^1.0.5",
     "url": "^0.11.0"
