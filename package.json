@@ -10,7 +10,7 @@
     "dom-serializer": "^0.1.0",
     "domelementtype": "^1.3.0",
     "domhandler": "^2.4.1",
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "htmlparser2": "^3.9.2",
     "iconv-lite": "^0.4.19",
     "inherits": "^2.0.3",
